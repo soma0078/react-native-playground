@@ -1,11 +1,18 @@
-import { Button, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Button,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { useState } from "react";
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts } from "@/constants/theme";
-import { useState } from "react";
+import { useMenus, useSubmitOrder } from "@/features/menu/queries";
 
 export default function TabTwoScreen() {
   return (
@@ -50,19 +57,13 @@ const styles = StyleSheet.create({
   },
 });
 
-const MENUS = [
-  { menu: "espresso" },
-  { menu: "matcha latte" },
-  { menu: "vanilla latte" },
-];
-
-interface Menu {
+interface MenuItemProps {
   menu: string;
   onSelect: (menu: string) => void;
   isSelected: boolean;
 }
 
-export const MenuItem = ({ menu, onSelect, isSelected }: Menu) => {
+export const MenuItem = ({ menu, onSelect, isSelected }: MenuItemProps) => {
   return (
     <TouchableOpacity onPress={() => onSelect(menu)}>
       <ThemedView
@@ -83,6 +84,8 @@ export const MenuItem = ({ menu, onSelect, isSelected }: Menu) => {
 
 export const MenuList = () => {
   const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
+  const { data: menus, isLoading, error } = useMenus();
+  const submitOrderMutation = useSubmitOrder();
 
   const handleSelect = (menu: string) => {
     setSelectedMenus((prev) => {
@@ -97,16 +100,51 @@ export const MenuList = () => {
     setSelectedMenus((prev) => prev.filter((menu) => menu !== menuToDelete));
   };
 
-  const handleSubmit = (selectedMenus: string[]) => {
-    alert("Now " + selectedMenus + " is(are) ordered!");
+  const handleSubmit = () => {
+    if (selectedMenus.length === 0) {
+      Alert.alert("알림", "메뉴를 선택해주세요.");
+      return;
+    }
+
+    submitOrderMutation.mutate(
+      { items: selectedMenus },
+      {
+        onSuccess: (response) => {
+          Alert.alert("주문 완료", response.message);
+          setSelectedMenus([]);
+        },
+        onError: (err) => {
+          Alert.alert("오류", err.message);
+        },
+      }
+    );
   };
+
+  if (isLoading) {
+    return (
+      <ThemedView style={menuStyles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <ThemedText>메뉴를 불러오는 중...</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (error) {
+    return (
+      <ThemedView>
+        <ThemedText style={{ color: "red" }}>
+          메뉴를 불러오지 못했습니다: {error.message}
+        </ThemedText>
+      </ThemedView>
+    );
+  }
 
   return (
     <>
       <ThemedView style={menuStyles.menuList}>
-        {MENUS.map((m) => (
+        {menus?.map((m) => (
           <MenuItem
-            key={m.menu}
+            key={m.id}
             menu={m.menu}
             onSelect={handleSelect}
             isSelected={selectedMenus.includes(m.menu)}
@@ -136,7 +174,11 @@ export const MenuList = () => {
         </ThemedView>
       </ThemedView>
 
-      <Button title="orderd" onPress={() => handleSubmit(selectedMenus)} />
+      <Button
+        title={submitOrderMutation.isPending ? "주문 중..." : "Order"}
+        onPress={handleSubmit}
+        disabled={submitOrderMutation.isPending}
+      />
     </>
   );
 };
@@ -163,5 +205,10 @@ const menuStyles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontFamily: Fonts.mono,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    gap: 10,
+    padding: 20,
   },
 });
