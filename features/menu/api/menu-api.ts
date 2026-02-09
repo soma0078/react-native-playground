@@ -7,13 +7,30 @@ const API_BASE_URL = "https://api.example.com";
 const USE_MOCK = true;
 
 // Mock 데이터
-const MOCK_MENUS: MenuItem[] = [
-  { id: "1", menu: "espresso" },
-  { id: "2", menu: "matcha latte" },
-  { id: "3", menu: "vanilla latte" },
+const MOCK_MENUS: Category[] = [
+  {
+    category: "Coffee",
+    data: [
+      { id: "1", menu: "espresso" },
+      { id: "2", menu: "mocha latte" },
+      { id: "3", menu: "vanilla latte" },
+    ],
+  },
+  {
+    category: "Drinks",
+    data: [
+      { id: "1", menu: "tomato juice" },
+      { id: "2", menu: "matcha latte" },
+      { id: "3", menu: "milk" },
+    ],
+  },
 ];
 
 // Types
+export interface Category {
+  category: string;
+  data: MenuItem[];
+}
 export interface MenuItem {
   id: string;
   menu: string;
@@ -33,19 +50,19 @@ export interface OrderResponse {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // 메뉴 목록 조회
-export const fetchMenus = async (): Promise<MenuItem[]> => {
+export const fetchMenus = async (): Promise<Category[]> => {
   if (USE_MOCK) {
     await delay(500);
     return MOCK_MENUS;
   }
 
-  const response = await axios.get<MenuItem[]>(`${API_BASE_URL}/menus`);
+  const response = await axios.get<Category[]>(`${API_BASE_URL}/menus`);
   return response.data;
 };
 
 // 주문 제출
 export const submitOrder = async (
-  request: OrderRequest
+  request: OrderRequest,
 ): Promise<OrderResponse> => {
   if (USE_MOCK) {
     await delay(800);
@@ -58,7 +75,7 @@ export const submitOrder = async (
 
   const response = await axios.post<OrderResponse>(
     `${API_BASE_URL}/orders`,
-    request
+    request,
   );
   return response.data;
 };

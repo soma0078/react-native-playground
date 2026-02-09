@@ -1,11 +1,12 @@
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Button,
+  SectionList,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { useState } from "react";
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
@@ -116,7 +117,7 @@ export const MenuList = () => {
         onError: (err) => {
           Alert.alert("오류", err.message);
         },
-      }
+      },
     );
   };
 
@@ -142,27 +143,33 @@ export const MenuList = () => {
   return (
     <>
       <ThemedView style={menuStyles.menuList}>
-        {menus?.map((m) => (
-          <MenuItem
-            key={m.id}
-            menu={m.menu}
-            onSelect={handleSelect}
-            isSelected={selectedMenus.includes(m.menu)}
-          />
-        ))}
+        <SectionList
+          sections={menus || []}
+          keyExtractor={(item, index) => item.id + index}
+          renderItem={({ item }) => (
+            <MenuItem
+              menu={item.menu}
+              onSelect={handleSelect}
+              isSelected={selectedMenus.includes(item.menu)}
+            />
+          )}
+          renderSectionHeader={({ section: { category } }) => (
+            <ThemedText style={menuStyles.category}>{category}</ThemedText>
+          )}
+        />
       </ThemedView>
 
       <ThemedView style={{ marginTop: 20 }}>
         <ThemedText style={{ marginBottom: 10 }}>📋 Selected Items:</ThemedText>
         <ThemedView style={menuStyles.selectedContainer}>
           {selectedMenus.length > 0 ? (
-            selectedMenus.map((menu) => (
+            selectedMenus.map((item, index) => (
               <TouchableOpacity
-                key={menu}
+                key={item + index}
                 style={menuStyles.chip}
-                onPress={() => handleDeleteMenu(menu)}
+                onPress={() => handleDeleteMenu(item)}
               >
-                <ThemedText style={menuStyles.chipText}>{menu}</ThemedText>
+                <ThemedText style={menuStyles.chipText}>{item}</ThemedText>
                 <IconSymbol name="xmark" size={18} color="#666" />
               </TouchableOpacity>
             ))
@@ -184,6 +191,13 @@ export const MenuList = () => {
 };
 
 const menuStyles = StyleSheet.create({
+  category: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 16,
+    marginBottom: 8,
+    fontFamily: Fonts.mono,
+  },
   menuItem: {
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -199,8 +213,11 @@ const menuStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 2,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     gap: 6,
+    borderColor: "#e0e0e0",
+    borderRadius: 16,
+    borderWidth: 1,
   },
   chipText: {
     fontSize: 14,
